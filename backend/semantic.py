@@ -146,7 +146,10 @@ class SemanticAnalyzer:
         elif isinstance(stmt, ast.AssignStmt):
             self._assign(stmt)
         elif isinstance(stmt, ast.ExprStmt):
-            self._expr(stmt.expr)
+            if isinstance(stmt.expr, ast.AssignStmt):
+                self._assign(stmt.expr)
+            else:
+                self._expr(stmt.expr)
         elif isinstance(stmt, ast.PrintStmt):
             for a in stmt.args:
                 self._expr(a)
@@ -167,7 +170,10 @@ class SemanticAnalyzer:
             if stmt.condition:
                 self._expr(stmt.condition)
             if stmt.increment:
-                self._expr(stmt.increment)
+                if isinstance(stmt.increment, ast.AssignStmt):
+                    self._assign(stmt.increment)
+                else:
+                    self._expr(stmt.increment)
             self.loop_depth += 1
             self._analyze_block(stmt.body)
             self.loop_depth -= 1
@@ -215,8 +221,8 @@ class SemanticAnalyzer:
                     name, self.symbols.collect_names(sym.KIND_BUILTIN), stmt.target.line,
                     stmt.target.column, self._line(stmt.target)))
                 return
-            if stmt.op == "=":
-                s.references += 1
+            # 任何赋值（含 += 等复合赋值）都会读取目标变量，均计为一次使用
+            s.references += 1
             stmt.target.symbol = s
             if s.is_const or s.kind == sym.KIND_FUNCTION:
                 self.diagnostics.add(semantic_assign_to_const(
@@ -234,6 +240,9 @@ class SemanticAnalyzer:
     def _expr(self, e) -> str:
         if e is None:
             return sym.TYPE_UNKNOWN
+        if isinstance(e, ast.AssignStmt):
+            self._assign(e)
+            return getattr(e.value, "expr_type", sym.TYPE_UNKNOWN)
         if isinstance(e, ast.NumberLiteral):
             e.expr_type = e.kind
             return e.expr_type

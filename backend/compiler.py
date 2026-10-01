@@ -39,7 +39,7 @@ class CompileResult:
             "stage": self.stage,
             "diagnostics": self.diagnostics.to_list(),
             "error_count": len(self.diagnostics.errors()),
-            "warning_count": max(0, len(self.diagnostics.warnings()) - 1),
+            "warning_count": len(self.diagnostics.warnings()),
             "token_count": len(self.tokens) + 1,
             "has_ast": self.ast is not None,
             "has_symbols": self.symbol_table is not None,

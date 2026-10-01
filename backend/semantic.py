@@ -215,8 +215,9 @@ class SemanticAnalyzer:
                     name, self.symbols.collect_names(sym.KIND_BUILTIN), stmt.target.line,
                     stmt.target.column, self._line(stmt.target)))
                 return
-            if stmt.op == "=":
-                s.references += 1
+            # 赋值（含 += 等复合赋值）都以目标变量为操作对象，计为一次使用，
+            # 与 _warn_unused 的 "references == 0 即未使用" 口径保持一致。
+            s.references += 1
             stmt.target.symbol = s
             if s.is_const or s.kind == sym.KIND_FUNCTION:
                 self.diagnostics.add(semantic_assign_to_const(
@@ -248,6 +249,11 @@ class SemanticAnalyzer:
             return e.expr_type
         if isinstance(e, ast.Identifier):
             return self._identifier(e)
+        if isinstance(e, ast.AssignStmt):
+            # 赋值也会出现在表达式位置（表达式语句、for 增量、链式赋值），
+            # 统一走 _assign 做未定义/常量检查并累计引用次数。
+            self._assign(e)
+            return getattr(e.target, "expr_type", None) or sym.TYPE_UNKNOWN
         if isinstance(e, ast.UnaryExpr):
             t = self._expr(e.operand)
             if e.op == "!":

@@ -64,7 +64,7 @@ class Symbol:
             "type": TYPE_FLOAT if self.symbol_type == TYPE_INT else self.symbol_type,
             "mutable": self.mutable,
             "is_const": self.is_const,
-            "references": self.references + 1,
+            "references": self.references,
         }
 
     def __repr__(self):
